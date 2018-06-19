@@ -61,6 +61,8 @@
 #define DEFAULT_CDIO_DEVICE "/dev/rcd0c"
 #endif
 
+#define MAX_CD_DEVICES 64
+
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
@@ -544,49 +546,34 @@ cdio_get_devices_netbsd (void)
   return NULL;
 #else
   char drive[40];
-  char **drives = NULL;
-  unsigned int num_drives=0;
-  int mib[2];
-  size_t len;
-  char *p, *pp, *data;
+  char **drives = NULL, *p;
+  unsigned int num_drives = 0;
+  int cdfd;
+  int n;
 
-  mib[0] = CTL_HW;
-  mib[1] = HW_DISKNAMES;
+  /* On NetBSD CD devices may be under c or d paritions, whereas on OpenBSD
+   * they are only ever under c */
+#ifdef __OpenBSD__
+  char *partitions = "c";
+#else
+  char *partitions = "cd";
+#endif
 
-  /* Determine how much space to allocate. */
-  if (sysctl(mib, 2, NULL, &len, NULL, 0) == -1)
-     return NULL;
-
-  if ((data = (char *)malloc(len)) == NULL)
-     return NULL;
-
-  if (sysctl(mib, 2, data, &len, NULL, 0) == -1) {
-     free(data);
-     return NULL;
-  }
-  if (sizeof DEFAULT_CDIO_DEVICE > sizeof drive) {
-     free(data);
-     return NULL;
-  }
-  strcpy(drive,DEFAULT_CDIO_DEVICE);
-  p = data;
-  while ((pp = strchr(p, ' ')) != NULL) {
-     *pp = '\0';
-     if (p[0] == 'c' && p[1] == 'd' && p[2] >= '0' && p[2] <= '9' &&
-         p[3] == '\0') {
-        drive[sizeof DEFAULT_CDIO_DEVICE - 3] = p[2];
-        cdio_add_device_list(&drives, drive, &num_drives);
-     }
-     p = ++pp;
-  }
-  if (p[0] == 'c' && p[1] == 'd' && p[2] >= '0' && p[2] <= '9' &&
-      p[3] == '\0') {
-     drive[sizeof DEFAULT_CDIO_DEVICE - 3] = p[2];
-     cdio_add_device_list(&drives, drive, &num_drives);
+  /* Iterate raw CD device "units" (e.g. rcd0, rcd1, ...) */
+  for (n = 0; n <= MAX_CD_DEVICES; n++) {
+    /* Iterate partitions */
+    for (p = partitions; *p != '\0'; p++) {
+      snprintf(drive, sizeof(drive), "/dev/rcd%d%c", n, *p);
+      if (!cdio_is_device_quiet_generic(drive))
+        continue;
+      if ((cdfd = open(drive, O_RDONLY|O_NONBLOCK, 0)) == -1)
+        continue;
+      close(cdfd);
+      cdio_add_device_list(&drives, drive, &num_drives);
+    }
   }
   cdio_add_device_list(&drives, NULL, &num_drives);
-  free(data);
-  return drives;
+  return (drives);
 #endif /* HAVE_NETBSD_CDROM */
 }
 
