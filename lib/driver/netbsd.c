@@ -84,6 +84,7 @@
 #include <sys/cdio.h>
 #include <sys/scsiio.h>
 #include <sys/sysctl.h>
+#include <sys/disklabel.h>
 
 #define TOTAL_TRACKS (_obj->tochdr.ending_track \
                       - _obj->tochdr.starting_track + 1)
@@ -601,32 +602,21 @@ cdio_get_devices_netbsd (void)
 #ifndef HAVE_NETBSD_CDROM
   return NULL;
 #else
-  char drive[40];
-  char **drives = NULL, *p;
+  char drive[16];
+  char **drives = NULL;
   unsigned int num_drives = 0;
   int cdfd;
   int n;
 
-  /* On NetBSD CD devices may be under c or d paritions, whereas on OpenBSD
-   * they are only ever under c */
-#ifdef __OpenBSD__
-  char *partitions = "c";
-#else
-  char *partitions = "cd";
-#endif
-
-  /* Iterate raw CD device "units" (e.g. rcd0, rcd1, ...) */
+  /* Search for open(2)able /dev/rcd* devices */
   for (n = 0; n <= MAX_CD_DEVICES; n++) {
-    /* Iterate partitions */
-    for (p = partitions; *p != '\0'; p++) {
-      snprintf(drive, sizeof(drive), "/dev/rcd%d%c", n, *p);
-      if (!cdio_is_device_quiet_generic(drive))
-        continue;
-      if ((cdfd = open(drive, O_RDONLY|O_NONBLOCK, 0)) == -1)
-        continue;
-      close(cdfd);
-      cdio_add_device_list(&drives, drive, &num_drives);
-    }
+    snprintf(drive, sizeof(drive), "/dev/rcd%d%c", n, 'a' + RAW_PART);
+    if (!cdio_is_device_quiet_generic(drive))
+      continue;
+    if ((cdfd = open(drive, O_RDONLY|O_NONBLOCK, 0)) == -1)
+      continue;
+    close(cdfd);
+    cdio_add_device_list(&drives, drive, &num_drives);
   }
   cdio_add_device_list(&drives, NULL, &num_drives);
   return (drives);
