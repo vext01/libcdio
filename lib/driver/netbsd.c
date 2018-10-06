@@ -331,7 +331,11 @@ _cdio_read_toc(_img_private_t *_obj)
                 return false;
         }
 
+#if defined(__OpenBSD__)
+        req.address_format = CD_LBA_FORMAT;
+#else
         req.address_format = CD_MSF_FORMAT;
+#endif
         req.starting_track = FIRST_TRACK_NUM;
         req.data_len = (TOTAL_TRACKS + 1) /* leadout! */
                 * sizeof(struct cd_toc_entry);
