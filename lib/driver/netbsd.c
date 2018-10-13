@@ -713,6 +713,7 @@ cdio_get_devices_netbsd (void)
 #endif /* HAVE_NETBSD_CDROM */
 }
 
+#ifdef HAVE_NETBSD_CDROM
 static driver_return_code_t
 audio_play_msf_netbsd(void *p_user_data, msf_t *p_start_msf, msf_t *p_end_msf)
 {
@@ -790,6 +791,7 @@ get_track_lba_netbsd(void *p_user_data, track_t i_track)
   return (p_env->tocent[i_track - p_env->gen.i_first_track].addr.lba +
       CDIO_PREGAP_SECTORS);
 }
+#endif /* HAVE_NETBSD_CDROM */
 
 /*!
   Return a string containing the default CD device.
