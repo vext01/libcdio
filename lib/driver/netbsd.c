@@ -331,11 +331,7 @@ _cdio_read_toc(_img_private_t *_obj)
                 return false;
         }
 
-#if defined(__OpenBSD__)
-        req.address_format = CD_LBA_FORMAT;
-#else
         req.address_format = CD_MSF_FORMAT;
-#endif
         req.starting_track = FIRST_TRACK_NUM;
         req.data_len = (TOTAL_TRACKS + 1) /* leadout! */
                 * sizeof(struct cd_toc_entry);
@@ -771,26 +767,6 @@ audio_read_subchannel_netbsd(void *p_user_data, cdio_subchannel_t *subchannel)
   }
 }
 #endif
-
-static lba_t
-get_track_lba_netbsd(void *p_user_data, track_t i_track)
-{
-  _img_private_t *p_env = p_user_data;
-
-  if (!p_env->gen.toc_init)
-    read_toc_netbsd(p_env);
-
-  if (i_track == CDIO_CDROM_LEADOUT_TRACK)
-    i_track = p_env->gen.i_first_track + p_env->gen.i_tracks;
-
-  if (!p_env->gen.toc_init ||
-      i_track > (p_env->gen.i_first_track + p_env->gen.i_tracks) ||
-      i_track < p_env->gen.i_first_track)
-    return (CDIO_INVALID_LBA);
-
-  return (p_env->tocent[i_track - p_env->gen.i_first_track].addr.lba +
-      CDIO_PREGAP_SECTORS);
-}
 #endif /* HAVE_NETBSD_CDROM */
 
 /*!
@@ -853,7 +829,8 @@ static cdio_funcs_t _funcs = {
   .get_track_copy_permit = get_track_copy_permit_generic,
   .get_track_format      = get_track_format_netbsd,
   .get_track_green       = get_track_green_netbsd,
-  .get_track_lba         = get_track_lba_netbsd,
+   /* Not because we can't talk LBA, but the driver assumes MSF throughout */
+  .get_track_lba         = NULL,
   .get_track_preemphasis = get_track_preemphasis_generic,
   .get_track_msf         = get_track_msf_netbsd,
   .get_track_isrc        = get_track_isrc_netbsd,
