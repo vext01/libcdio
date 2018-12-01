@@ -565,7 +565,7 @@ static track_format_t
 get_track_format_netbsd(void *user_data, track_t track_num)
 {
         _img_private_t *_obj = user_data;
-        int res;
+        int res, first_track = 0, track_idx = 0;
 
         if (!_obj->toc_valid) {
                 res = _cdio_read_toc(_obj);
@@ -573,19 +573,25 @@ get_track_format_netbsd(void *user_data, track_t track_num)
                         return TRACK_FORMAT_ERROR;
         }
 
-        if (track_num > TOTAL_TRACKS || track_num == 0)
-                return TRACK_FORMAT_ERROR;
+        first_track = _obj->gen.i_first_track;
 
-        if (_obj->tocent[track_num - 1].control & 0x04) {
+        if (!_obj->gen.toc_init ||
+            track_num > (first_track + _obj->gen.i_tracks) ||
+            track_num < first_track)
+            return (CDIO_INVALID_TRACK);
+
+        track_idx = track_num - first_track;
+
+        if (_obj->tocent[track_idx].control & 0x04) {
                 if (!_obj->sessionformat_valid) {
                         res = _cdio_read_discinfo(_obj);
                         if (res)
                                 return TRACK_FORMAT_ERROR;
                 }
 
-                if (_obj->sessionformat[track_num - 1] == 0x10)
+                if (_obj->sessionformat[track_idx] == 0x10)
                         return TRACK_FORMAT_CDI;
-                else if (_obj->sessionformat[track_num - 1] == 0x20)
+                else if (_obj->sessionformat[track_idx] == 0x20)
                         return TRACK_FORMAT_XA;
                 else
                         return TRACK_FORMAT_DATA;
@@ -622,7 +628,7 @@ static bool
 get_track_msf_netbsd(void *user_data, track_t track_num, msf_t *msf)
 {
         _img_private_t *_obj = user_data;
-        int res;
+        int res, first_track = 0, track_idx = 0;
 
         if (!msf)
                 return false;
@@ -636,12 +642,17 @@ get_track_msf_netbsd(void *user_data, track_t track_num, msf_t *msf)
         if (track_num == CDIO_CDROM_LEADOUT_TRACK)
                 track_num = TOTAL_TRACKS + 1;
 
-        if (track_num > TOTAL_TRACKS + 1 || track_num == 0)
-                return false;
+        first_track = _obj->gen.i_first_track;
 
-        msf->m = cdio_to_bcd8(_obj->tocent[track_num - 1].addr.msf.minute);
-        msf->s = cdio_to_bcd8(_obj->tocent[track_num - 1].addr.msf.second);
-        msf->f = cdio_to_bcd8(_obj->tocent[track_num - 1].addr.msf.frame);
+        if (!_obj->gen.toc_init ||
+            track_num > (first_track + _obj->gen.i_tracks) ||
+            track_num < first_track)
+            return (CDIO_INVALID_TRACK);
+
+        track_idx = track_num - first_track;
+        msf->m = cdio_to_bcd8(_obj->tocent[track_idx].addr.msf.minute);
+        msf->s = cdio_to_bcd8(_obj->tocent[track_idx].addr.msf.second);
+        msf->f = cdio_to_bcd8(_obj->tocent[track_idx].addr.msf.frame);
 
         return true;
 }
