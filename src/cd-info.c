@@ -1108,7 +1108,9 @@ main(int argc, char *argv[])
       if (-1 == first_data)  first_data = i;
     }
     /* skip to leadout? */
-    if (i == i_tracks) i = CDIO_CDROM_LEADOUT_TRACK-1;
+    if (i == i_first_track + i_tracks - 1) {
+        i = CDIO_CDROM_LEADOUT_TRACK;
+    }
   }
 
   if (cdio_is_discmode_cdrom(discmode)) {
