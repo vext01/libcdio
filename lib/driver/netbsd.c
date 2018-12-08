@@ -620,8 +620,9 @@ get_track_green_netbsd(void *user_data, track_t track_num)
   track_num in obj.  Track numbers usually start at something
   greater than 0, usually 1.
 
-  The "leadout" track is specified either by
-  using i_track LEADOUT_TRACK or the total tracks+1.
+  The "leadout" track is specified by passing i_track as either
+  LEADOUT_TRACK or the track number of the last audio track plus one.
+
   False is returned if there is no track entry.
 */
 static bool
@@ -640,7 +641,7 @@ get_track_msf_netbsd(void *user_data, track_t track_num, msf_t *msf)
         }
 
         if (track_num == CDIO_CDROM_LEADOUT_TRACK)
-                track_num = TOTAL_TRACKS + 1;
+                track_num = _obj->gen.i_tracks + _obj->gen.i_first_track;
 
         first_track = _obj->gen.i_first_track;
 
