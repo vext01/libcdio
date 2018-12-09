@@ -637,7 +637,7 @@ get_track_msf_netbsd(void *user_data, track_t track_num, msf_t *msf)
         if (!_obj->toc_valid) {
                 res = _cdio_read_toc(_obj);
                 if (!res)
-                        return CDIO_INVALID_TRACK;
+                        return false;
         }
 
         if (track_num == CDIO_CDROM_LEADOUT_TRACK)
