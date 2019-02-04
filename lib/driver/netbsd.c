@@ -861,6 +861,7 @@ static cdio_funcs_t _funcs = {
   .read_toc              = read_toc_netbsd,
   .run_mmc_cmd           = run_scsi_cmd_netbsd,
   .set_arg               = set_arg_netbsd,
+  .set_speed             = set_speed_mmc,
 };
 #endif /*HAVE_NETBSD_CDROM*/
 
